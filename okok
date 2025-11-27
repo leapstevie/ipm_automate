@@ -1,0 +1,803 @@
+# # steps/generic_step.py
+
+# from api.http import http_get, http_put
+# from utils.random_data import generic_value_resolver
+# from utils.schema_payload import build_payload
+# from utils.applicant import get_primary_applicant_id
+
+
+# def _process_subform(invt_id, subform):
+
+#     print(f"[SUBFORM] Loading subform: {subform}")
+
+#     # ---------------------------------------------------
+#     # SPECIAL CASE: board_member needs applicant popup first
+#     # ---------------------------------------------------
+#     if subform == "board_member":
+#         applicant_id = get_primary_applicant_id(invt_id)
+#         print(f"[SUBFORM] board_member → using applicant_id = {applicant_id}")
+
+#         http_get(
+#             f"/invt/{invt_id}/popup_subform/f_applicant_information",
+#             params={"object_id": applicant_id},
+#         )
+#         print("[SUBFORM] Triggered popup: f_applicant_information")
+
+#     # ---------------------------------------------------
+#     # 1) Load subform list
+#     # ---------------------------------------------------
+#     sf = http_get(f"/invt/{invt_id}/subform/{subform}")["data"]
+#     objects = sf.get("objects") or []
+
+#     # ---------------------------------------------------
+#     # 2) Decide object_id
+#     # ---------------------------------------------------
+#     if objects:
+#         # Row already exists
+#         obj_id = objects[0]["id"]
+#     else:
+#         # No row yet → use backend's default object_id
+#         inv_info = sf.get("investment_info") or {}
+#         obj_id = inv_info.get("object_id")
+
+#         if not obj_id:
+#             raise Exception(
+#                 f"[ERROR] Subform '{subform}' has no objects and no investment_info.object_id"
+#             )
+
+#         # Create a blank row – backend will attach it to this object_id
+#         http_put(
+#             f"/invt/{invt_id}/subform/{subform}/data/save?",
+#             {"data": [{}]},
+#         )
+
+#     print(f"[SUBFORM] Using object_id = {obj_id}")
+
+#     # ---------------------------------------------------
+#     # 3) Load popup schema for that object
+#     # ---------------------------------------------------
+#     popup = http_get(
+#         f"/invt/{invt_id}/subform/{subform}",
+#         params={"object_id": obj_id},
+#     )["data"]
+
+#     detail = popup.get("detail") or {}
+
+#     # ---------------------------------------------------
+#     # 4) Build payload dynamically
+#     # ---------------------------------------------------
+#     payload = build_payload(detail, generic_value_resolver)
+
+#     # ---------------------------------------------------
+#     # 5) Save subform object
+#     # ---------------------------------------------------
+#     http_put(
+#         f"/invt/{invt_id}/subform/{subform}/object/{obj_id}/data/save?",
+#         {"data": payload},
+#     )
+
+#     print(f"[OK] SUBFORM {subform} saved.\n")
+#     return True
+
+
+# def submit_generic_step(invt_id, step_code):
+
+#     print(f"\n[GENERIC] Submitting step: {step_code}")
+
+#     # ---------------------------------------------------
+#     # 1) Try to load as /step/{step_code}
+#     # ---------------------------------------------------
+#     step_data = None
+#     detail = None
+
+#     try:
+#         res = http_get(
+#             f"/step/{step_code}",
+#             params={"invt_id": invt_id, "type": "qip"},
+#         )
+#         step_data = res.get("data") or {}
+#         detail = step_data.get("detail") or {}
+#     except Exception as e:
+#         print(f"[GENERIC] /step/{step_code} not available or error: {e}")
+
+#     # ---------------------------------------------------
+#     # 2) If step_data exists, decide if it's wrapper or normal form
+#     # ---------------------------------------------------
+#     if step_data and detail is not None:
+#         forms = detail.get("forms") or []
+#         lists = detail.get("lists") or []
+
+#         # --------- WRAPPER STEP (like annex2_1, board_member_composition) ----------
+#         if not forms and lists:
+#             real_subform = lists[0]["code"]
+#             print(
+#                 f"[GENERIC] Detected WRAPPER step '{step_code}' → subform '{real_subform}'"
+#             )
+#             _process_subform(invt_id, real_subform)
+#             print(f"[GENERIC] Wrapper step {step_code} handled via subform {real_subform}.")
+#             return True
+
+#         # --------- NORMAL FORM STEP ----------
+#         if forms or detail.get("panels"):
+#             print(f"[GENERIC] Detected FORM step: {step_code}")
+
+#             payload = build_payload(detail, generic_value_resolver)
+
+#             http_put(
+#                 f"/invt/{invt_id}/form/{step_code}/data/save?",
+#                 {"data": payload},
+#             )
+
+#             print(f"[GENERIC] {step_code} saved successfully (FORM).\n")
+#             return True
+
+#     # ---------------------------------------------------
+#     # 3) Fallback: treat step_code as direct subform
+#     # ---------------------------------------------------
+#     print(
+#         f"[GENERIC] Falling back to treating '{step_code}' as SUBFORM (no usable step detail)."
+#     )
+#     _process_subform(invt_id, step_code)
+#     print(f"[GENERIC] {step_code} saved successfully (SUBFORM fallback).\n")
+#     return True
+
+
+
+
+
+
+
+
+# import os
+# import random
+# import string
+# from datetime import datetime, timedelta
+# from api.http import http_get
+# from api.upload import upload_temp_attachment, upload_temp_image
+
+# _INVT_ENUM_CACHE = None
+
+
+# def _load_invt_enum():
+#     global _INVT_ENUM_CACHE
+#     if _INVT_ENUM_CACHE is None:
+#         res = http_get("/formdata/invt")
+#         _INVT_ENUM_CACHE = res.get("data", {})
+#     return _INVT_ENUM_CACHE
+
+
+# def _pick_from_option_code(option_code: str):
+#     if not option_code:
+#         return None
+
+#     enums = _load_invt_enum()
+#     items = enums.get(option_code) or []
+#     if not items:
+#         return None
+
+#     codes = [item.get("code") for item in items if item.get("code")]
+#     if codes:
+#         return random.choice(codes)
+
+#     values = [item.get("value") for item in items if item.get("value") is not None]
+#     if values:
+#         return random.choice(values)
+
+#     return None
+
+
+# def _pick_list_from_option_code(option_code: str, validation: dict):
+#     enums = _load_invt_enum().get(option_code, [])
+#     codes = [i.get("code") for i in enums if i.get("code")]
+#     if not codes:
+#         return []
+
+
+#     min_len = 1
+#     try:
+#         block = validation.get("min_length")
+#         val = block.get("value") if isinstance(block, dict) else block
+#         if val not in (None, ""):
+#             min_len = int(val)
+#     except Exception:
+#         pass
+
+#     max_pick = min(3, len(codes))  
+#     pick_count = min(max(1, min_len), max_pick)
+
+#     return random.sample(codes, pick_count)
+
+
+# def _pick_dependent(keyword, parent_code):
+#     try:
+#         res = http_get(
+#             "/formdata/invt/dependency_option",
+#             params={"keyword": keyword, "parent_code": parent_code},
+#         )
+#         data = res.get("data", [])
+#         if not data:
+#             print(f"[WARN] No dependent options for {keyword} parent={parent_code}")
+#             return None
+#         return random.choice(data).get("code")
+
+#     except Exception as e:
+#         print(f"[ERROR] Dependency-option failed for keyword={keyword} parent={parent_code}: {e}")
+#         return None
+
+
+# def generic_value_resolver(field, context=None):
+#     if context is None:
+#         context = {}
+
+#     code = (field.get("code") or "").strip()
+#     code_lower = code.lower()
+#     validation = field.get("validation") or {}
+#     data_type_raw = validation.get("data_type")
+#     data_type = (data_type_raw.get("value") if isinstance(data_type_raw, dict) else data_type_raw or "").lower()
+
+#     field_type = (field.get("field_type_code") or "").lower()
+#     option_code = field.get("option_code")
+#     dep_parent_key = field.get("dependency_option_field_code")
+#     options = field.get("value_list") or []
+
+#     # ============================================================
+#     # READ-ONLY FIELDS
+#     # ============================================================
+#     if field.get("is_permanent_disable") and field.get("value") not in (None, ""):
+#         return field.get("value")
+
+#     # ============================================================
+#     # FILE FIELDS
+#     # ============================================================
+#     if field_type == "attachment":
+#         from utils.random_data import random_file
+#         return upload_temp_attachment(random_file("picture_automate/face_scan"))
+
+#     if field_type == "image":
+#         from utils.random_data import random_file
+#         return upload_temp_image(random_file("picture_automate"))
+
+#     # ============================================================
+#     # DEPENDENCY FIELDS
+#     # ============================================================
+#     if dep_parent_key:
+#         parent_value = context.get(dep_parent_key)
+#         if parent_value:
+#             val = _pick_dependent(option_code, parent_value)
+#             if val:
+#                 return val
+
+#     # ============================================================
+#     # LIST FIELDS (data_type = list_of_string)
+#     # ============================================================
+#     if data_type == "list_of_string":
+
+#         if code == "investment_target_detail":
+#             enums = _load_invt_enum().get("investment_target", [])
+
+#             if not enums:
+#                 return []
+
+#             # 1) Pick ONE parent group
+#             group = random.choice(enums)
+
+#             children = group.get("children", [])
+#             if not children:
+#                 return []
+
+#             # 2) Pick 1–3 children from the SAME group
+#             child_codes = [c["code"] for c in children]
+#             pick_count = min(3, len(child_codes))
+
+#             return random.sample(child_codes, pick_count)
+
+#         # ------------------------------------------------------------
+#         # NORMAL CASE: inline value_list
+#         # ------------------------------------------------------------
+#         if options:
+#             list_values = []
+#             for o in options:
+#                 if isinstance(o, dict):
+#                     v = o.get("value")
+#                 else:
+#                     v = o
+#                 if v is not None:
+#                     list_values.append(v)
+
+#             if list_values:
+#                 pick_count = min(3, len(list_values))
+#                 return random.sample(list_values, pick_count)
+
+#         # ------------------------------------------------------------
+#         # OPTION ENUMS
+#         # ------------------------------------------------------------
+#         if option_code:
+#             return _pick_list_from_option_code(option_code, validation)
+
+#         return []
+
+#     # ============================================================
+#     # MULTI-SELECT
+#     # ============================================================
+#     if field_type == "multi_select":
+#         if option_code:
+#             return _pick_list_from_option_code(option_code, validation)
+#         if options:
+#             return [random.choice(options)]
+#         return []
+
+#     # ============================================================
+#     # SINGLE SELECT FIELDS
+#     # ============================================================
+#     if option_code:
+#         picked = _pick_from_option_code(option_code)
+#         if picked is not None:
+#             return picked
+
+#     # ============================================================
+#     # DATE FIELDS
+#     # ============================================================
+#     if data_type == "date":
+#         from utils.random_data import random_past_date
+#         return random_past_date()
+
+#     # ============================================================
+#     # LAT/LNG
+#     # ============================================================
+#     if "lat_lng" in code_lower:
+#         lat = round(random.uniform(10.0, 14.5), 6)
+#         lng = round(random.uniform(102.0, 107.0), 6)
+#         return f"{lat},{lng}"
+
+#     # ============================================================
+#     # PASSPORT / ID
+#     # ============================================================
+#     if "passport" in code_lower or "citizen_id" in code_lower:
+#         from utils.random_data import random_passport
+#         return random_passport()
+
+#     # ============================================================
+#     # INLINE OPTIONS (fallback)
+#     # ============================================================
+#     if options:
+#         inline_values = []
+#         for o in options:
+#             if isinstance(o, dict):
+#                 v = o.get("value")
+#             else:
+#                 v = o
+#             if v is not None:
+#                 inline_values.append(v)
+
+#         if inline_values:
+#             return random.choice(inline_values)
+
+#     # ============================================================
+#     # EMAIL
+#     # ============================================================
+#     if "email" in code_lower:
+#         if "confirm" in code_lower and "email" in context:
+#             return context["email"]
+
+#         from utils.random_data import random_email
+#         email = random_email()
+#         context["email"] = email
+#         return email
+
+#     # ============================================================
+#     # PHONE
+#     # ============================================================
+#     if "phone" in code_lower and "code" not in code_lower:
+#         from utils.random_data import random_phone
+#         return random_phone()
+
+#     # ============================================================
+#     # KHMER TEXT FIELDS
+#     # ============================================================
+#     if code_lower.endswith("_km") or code_lower.endswith("_kh"):
+#         from utils.random_data import random_company_name_km
+#         return random_company_name_km()
+
+#     # ============================================================
+#     # ENGLISH TEXT FIELDS
+#     # ============================================================
+#     if code_lower.endswith("_en"):
+#         from utils.random_data import random_English_name
+#         return random_English_name()
+
+#     # ============================================================
+#     # NUMERIC FIELDS
+#     # ============================================================
+#     numeric_types = {"int", "integer", "float", "decimal", "number"}
+#     if data_type in numeric_types:
+#         min_obj = validation.get("min")
+#         max_obj = validation.get("max")
+
+#         min_raw = min_obj.get("value") if isinstance(min_obj, dict) else min_obj
+#         max_raw = max_obj.get("value") if isinstance(max_obj, dict) else max_obj
+
+#         try:
+#             mn = float(min_raw) if min_raw not in (None, "") else 0
+#         except:
+#             mn = 0
+
+#         try:
+#             mx = float(max_raw) if max_raw not in (None, "") else mn + 500
+#         except:
+#             mx = mn + 500
+
+#         if mn > mx:
+#             mx = mn + 500
+
+#         if mx > 1_000_00:
+#             mx = 1_000_00
+
+#         if data_type == "float":
+#             return round(random.uniform(mn, mx))
+
+#         return int(random.randint(int(mn), int(mx)))
+
+#     # ============================================================
+#     # DEFAULT STRING
+#     # ============================================================
+#     return f"AUTO_{random.randint(1000, 9999)}"
+
+
+
+# def random_phone_code():
+#     try:
+#         res = http_get("/options/phone_code")
+#         options = res["data"]["phone_code"]
+#         if not options:
+#             return "855" 
+#         return random.choice(options)["code"]
+#     except Exception as e:
+#         print(f"[WARN] Could not fetch phone_code options: {e}")
+#         return "855"
+
+
+# # ======================================================
+# # 2) GLOBAL ENUM CACHE
+# # ======================================================
+
+# def _cached_loader(cache_name, key):
+#     gl = globals()
+#     if gl.get(cache_name) is None:
+#         res = http_get("/formdata/invt")
+#         gl[cache_name] = [item["code"] for item in res["data"].get(key, [])]
+#     return gl[cache_name]
+
+# def get_investor_salute_codes():
+#     return _cached_loader("_investor_salute_cache", "investor_salute")
+
+# def get_salute_codes():
+#     return _cached_loader("_salute_cache", "salute")
+
+# _product_units_cache = None
+# def get_product_units():
+#     return _cached_loader("_product_units_cache", "product_unit")
+
+# _employee_benefit_cache = None
+# def get_employee_benefit_codes():
+#     return _cached_loader("_employee_benefit_cache", "employee_benefit")
+
+# _equipment_category_cache = None
+# def get_equipment_categories():
+#     return _cached_loader("_equipment_category_cache", "equipment_and_materials_category")
+
+# _sector_codes_cache = None
+# def get_sector_codes():
+#     return _cached_loader("_sector_codes_cache", "sector")
+
+# _qip_type_cache = None
+# def get_qip_types():
+#     return _cached_loader("_qip_type_cache", "qip_type")
+
+# _union_cache = None
+# def get_union_codes():
+#     return _cached_loader("_union_cache", "union")
+
+# _continent_cache = None
+# def get_continent_codes():
+#     return _cached_loader("_continent_cache", "continent")
+
+# _nationality_cache = None
+# def get_nationality_codes():
+#     return _cached_loader("_nationality_cache", "nationality")
+
+# _country_cache = None
+# def get_market_country_codes():
+#     return _cached_loader("_country_cache", "country")
+
+# _bm_position_cache = None
+# def get_bm_position_codes():
+#     return _cached_loader("_bm_position_cache", "bm_position")
+
+# _investor_salute_cache = None
+# def get_investor_salute_codes():
+#     return _cached_loader("_investor_salute_cache", "investor_salute")
+
+# _currency_cache = None
+# def get_currency_codes():
+#     return _cached_loader("_currency_cache", "currency")
+
+# def random_currency_code():
+#     codes = get_currency_codes()
+#     return random.choice(codes) if codes else "USD"
+
+# _company_type_cache = None
+# def get_company_type_codes():
+#     return _cached_loader("_company_type_cache", "company_type")
+# # ======================================================
+# # 3) INVESTMENT TARGET SPECIAL HANDLING
+# # ======================================================
+
+# _investment_target_cache = None
+# def get_investment_targets():
+#     global _investment_target_cache
+#     if _investment_target_cache is None:
+#         res = http_get("/formdata/invt")
+#         flat = []
+#         for group in res["data"]["investment_target"]:
+#             for child in group["children"]:
+#                 flat.append({
+#                     "code": child["code"],
+#                     "km": child["translate"]["km"],
+#                     "en": child["translate"]["en"],
+#                 })
+#         _investment_target_cache = flat
+#     return _investment_target_cache
+
+# def random_investment_target_detail():
+#     return random.choice(get_investment_targets())
+
+# def random_investment_target_khmer():
+#     return random_investment_target_detail()["km"]
+
+# def random_investment_target_en():
+#     return random_investment_target_detail()["en"]
+
+# def random_investment_target_code():
+#     return random_investment_target_detail()["code"]
+
+
+# # ======================================================
+# # 4) RANDOM ENUM PICKERS
+# # ======================================================
+    
+# def random_investor_salute():
+#     codes = get_investor_salute_codes()
+#     return random.choice(codes) if codes else "Mr."
+
+# def get_salute_codes():
+#     return _cached_loader("_salute_cache", "salute")
+
+# def random_salute_code():
+#     codes = get_salute_codes() or []
+#     if not codes:
+#         return "Mr."
+#     return random.choice(codes)
+
+# def random_equipment_unit():
+#     return random.choice(get_product_units())
+
+# def random_employee_benefits():
+#     codes = get_employee_benefit_codes()
+#     return random.choice(codes) if codes else None
+
+# def random_sector_code():
+#     return random.choice(get_sector_codes())
+
+# def random_qip_type():
+#     return random.choice(get_qip_types())
+
+# def random_market_union():
+#     return random.sample(get_union_codes(), random.randint(1, len(get_union_codes())))
+
+# def random_market_continent():
+#     return random.sample(get_continent_codes(), random.randint(1, len(get_continent_codes())))
+
+# def random_market_countries():
+#     countries = get_market_country_codes()
+#     return random.sample(countries, random.randint(3, min(7, len(countries))))
+
+# def random_market_country_single():
+#     return random.choice(get_market_country_codes())
+
+# def random_nationality_code():
+#     return random.choice(get_nationality_codes())
+
+# def random_bm_position_code():
+#     return random.choice(get_bm_position_codes())
+
+# def random_investor_salute():
+#     return random.choice(get_investor_salute_codes())
+
+
+# # ======================================================
+# # 5) PERSONAL INFO RANDOM
+# # ======================================================
+
+# def random_foreign_commercial_company():
+#     options = [
+#         "foreign_commercial_company",
+#         "local_company",
+#         "joint_venture",
+#         "industrial_company",
+#         "service_company",
+#         "agriculture_company",
+#     ]
+#     return random.choice(options)
+
+# def random_English_name():
+#     return random.choice(["SomDara", "VongRith", "KimHeang", "SokLeap", "LongDara"])
+
+# def random_khmer_name():
+#     return random.choice(["ពីពពៃូឈ", "សុខ ដារ៉ា", "ជា ហេង", "ខឹម ហ៊ាង", "តេ តុលា", "រិត សុខា"])
+
+# def random_company_name_km():
+#     return random.choice([
+#         "គៅគៃ", "លីម៉េង", "សេងហួរ", "តាយ៉ុង", "អាយអិនជីនៀរ", "អេសជីអិល", "អេសអេសអេស",
+#         "អេសអេចខេ", "អាយអាយអាយ", "អេសធីអាយ", "អេសជីធី", "អេអាយធី", "អេធីឃេ",
+#     ])
+
+# def random_passport():
+#     return "A" + "".join(random.choices(string.digits, k=9))
+
+# def random_email():
+#     return f"{''.join(random.choices(string.ascii_lowercase, k=8))}@mailinator.com"
+
+# def random_phone():
+#     return "8" + "".join(random.choices(string.digits, k=10))
+
+# def random_address():
+#     return random.choice(["Street 123", "Street 456", "Street 78A", "ផ្លូវ៣៣៤", "ផ្លូវ៤៥៦", "ផ្លូវ២១៣"])
+
+# def random_past_date(max_days=2000):
+#     dt = datetime.now() - timedelta(days=random.randint(1, max_days))
+#     return dt.strftime("%Y-%m-%d")
+
+
+# # ======================================================
+# # 6) FILE HELPERS
+# # ======================================================
+
+# def random_file(folder="picture_automate"):
+#     if not os.path.isdir(folder):
+#         raise Exception(f"Folder not found: {folder}")
+#     files = [f for f in os.listdir(folder) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+#     if not files:
+#         raise Exception("No images found in picture_automate/")
+#     return os.path.join(folder, random.choice(files))
+
+# def random_signature_file(folder="picture_automate/signature"):
+#     if not os.path.isdir(folder):
+#         raise Exception(f"Folder not found: {folder}")
+#     files = [f for f in os.listdir(folder) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+#     if not files:
+#         raise Exception("No images found in picture_automate/signature")
+#     return os.path.join(folder, random.choice(files))
+
+# def random_face_file(folder="picture_automate/face_scan"):
+#     if not os.path.isdir(folder):
+#         raise Exception(f"Folder not found: {folder}")
+#     files = [f for f in os.listdir(folder) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+#     if not files:
+#         raise Exception("No images found in picture_automate/face_scan")
+#     return os.path.join(folder, random.choice(files))
+
+# # ======================================================
+# # 7) EQUIPMENT RANDOM
+# # ======================================================
+
+# def random_equipment_name():
+#     return random.choice([
+#         "Steel Rod", "Welding Helmet", "Cement Bag", "Steel Pipe",
+#         "Safety Shoes", "Electric Drill", "Hammer",
+#         "Aluminum Sheet", "Air Compressor", "Cutting Blade", "Industrial Fan",
+#     ])
+
+# def random_quantity(min_q=10, max_q=500):
+#     return random.randint(min_q, max_q)
+
+# def random_price(min_p=5, max_p=500):
+#     return random.randint(min_p, max_p)
+
+# def random_category():
+#     categories = get_equipment_categories()
+#     return random.choice(categories) if categories else "I- Construction Material"
+
+# def random_percent():
+#     return random.choice(["0", "50", "100"])
+
+
+# # ======================================================
+# # 8) PROJECT INFO RANDOM
+# # ======================================================
+
+# def random_incentive_type():
+#     return random.choice([
+#         "exemption_on_income_tax",
+#         "special_tax_deduction",
+#         "custom_duty_exemption",
+#     ])
+
+# def random_building_type():
+#     return random.choice(["existing_building", "new_building"])
+
+# def random_cost(min_v=1000, max_v=100000):
+#     return str(random.randint(min_v, max_v))
+
+# def random_area():
+#     return str(random.randint(100, 20000))
+
+# def random_capital_percent():
+#     own = random.randint(10, 80)
+#     long_term = random.randint(0, 50)
+#     short_term = random.randint(0, 100 - own)
+#     return str(own), str(long_term), str(short_term)
+
+# def random_project_dates():
+#     start = datetime.now() + timedelta(days=random.randint(30, 120))
+#     end   = start + timedelta(days=random.randint(30, 120))
+#     equip = end   + timedelta(days=random.randint(30, 120))
+#     prod  = equip + timedelta(days=random.randint(30, 120))
+#     return (
+#         start.strftime("%Y-%m-%d"),
+#         end.strftime("%Y-%m-%d"),
+#         equip.strftime("%Y-%m-%d"),
+#         prod.strftime("%Y-%m-%d")
+#     )
+
+
+# # ======================================================
+# # 9) SMALL UTILITIES
+# # ======================================================
+
+# def random_latlng():
+#     return random.choice([
+#         "11.590677,104.859288",
+#         "11.614311,104.832491",
+#         "11.558829,104.807890",
+#     ])
+
+# def random_future_date():
+#     dt = datetime.now() + timedelta(days=random.randint(30, 500))
+#     return dt.strftime("%Y-%m-%d")
+
+# def random_product_name():
+#     return random.choice(["ផលិតផល A", "ផលិតផល B", "ផលិតផល C", "ទំនិញ X", "ទំនិញ Y"])
+
+# def random_hs_code():
+#     return "".join(random.choices(string.digits, k=6))
+
+# def random_kh_note():
+#     return random.choice(["ល្អ", "ធម្មតា", "គុណភាពខ្ពស់", "ត្រូវការកែប្រែ", "សាកល្បង"])
+
+# def random_labor_type():
+#     return random.choice([
+#         "management", "engineers", "technician", "supervisors",
+#         "office_staff", "unskilled_worker", "monitor", "worker",
+#         "nurse", "pharmacy_staff", "administrative_staff", "other",
+#     ])
+
+# def random_kh_text():
+#     return random.choice(["ល្អ", "សាកល្បង", "ពិភាក្សា", "គម្រោង", "បរិស្ថាន"])
+
+# def random_product_input_name():
+#     return random.choice(["ស្រូវ", "កៅស៊ូ", "ស្ករ", "សំបុក", "ជ័រ", "ខ្សែ", "ដែក", "សន្លឹកដែក"])
+
+# def random_boolean_flag():
+#     return str(random.choice([0, 1]))
+
+# def random_small_number():
+#     return random.randint(10, 13)
+
+# def random_medium_number():
+#     return random.randint(100, 120)
+
+# def random_large_number():
+#     return random.randint(100000, 120000)
+
+# def random_very_large_number():
+#     return random.randint(10000000, 12000000)

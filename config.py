@@ -1,0 +1,9 @@
+TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjQ3Mjc0NzcsInN1YiI6ImFkOWYwYmI1LWExOTUtNGU0OS04M2IzLTAyN2ZiNTcwMjc5NSJ9.sbxNmjgGYclxzC-q4lONtU9XME9kPg2lOg4iFblidzg"
+
+BASE = "http://dev-api-ipm.cdc.gov.kh/api/v1"
+UPLOAD_BASE = "http://dev-osm.cdc.gov.kh/api/v1"
+
+HEADERS = {
+    "Authorization": f"Bearer {TOKEN}",
+    "Accept": "*/*",
+}
