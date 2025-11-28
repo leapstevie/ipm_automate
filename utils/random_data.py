@@ -122,23 +122,27 @@ def generic_value_resolver(field, context=None):
     # ============================================================
     if data_type == "list_of_string":
 
+        # SPECIAL RULE FOR investment_target_detail
         if code == "investment_target_detail":
-            enums = _load_invt_enum().get("investment_target", [])
 
+            enums = _load_invt_enum().get("investment_target", [])
             if not enums:
                 return []
 
-            # 1) Pick ONE parent group
-            group = random.choice(enums)
-
-            children = group.get("children", [])
-            if not children:
+            # ---- ALWAYS SELECT GROUP 1 ----
+            group = next((g for g in enums if g.get("code") == "1"), None)
+            if not group:
                 return []
 
-            # 2) Pick 1–3 children from the SAME group
-            child_codes = [c["code"] for c in children]
-            pick_count = min(3, len(child_codes))
+            # ---- ONLY CHILDREN FROM GROUP 1 ----
+            children = group.get("children", [])
+            child_codes = [c.get("code") for c in children if c.get("code")]
 
+            if not child_codes:
+                return []
+
+            # ---- Pick 1–3 children randomly ----
+            pick_count = min(3, len(child_codes))
             return random.sample(child_codes, pick_count)
 
         # ------------------------------------------------------------
@@ -165,6 +169,7 @@ def generic_value_resolver(field, context=None):
             return _pick_list_from_option_code(option_code, validation)
 
         return []
+
 
     # ============================================================
     # MULTI-SELECT
@@ -293,177 +298,6 @@ def generic_value_resolver(field, context=None):
     return f"AUTO_{random.randint(1000, 9999)}"
 
 
-
-def random_phone_code():
-    try:
-        res = http_get("/options/phone_code")
-        options = res["data"]["phone_code"]
-        if not options:
-            return "855" 
-        return random.choice(options)["code"]
-    except Exception as e:
-        print(f"[WARN] Could not fetch phone_code options: {e}")
-        return "855"
-
-
-# ======================================================
-# 2) GLOBAL ENUM CACHE
-# ======================================================
-
-def _cached_loader(cache_name, key):
-    gl = globals()
-    if gl.get(cache_name) is None:
-        res = http_get("/formdata/invt")
-        gl[cache_name] = [item["code"] for item in res["data"].get(key, [])]
-    return gl[cache_name]
-
-def get_investor_salute_codes():
-    return _cached_loader("_investor_salute_cache", "investor_salute")
-
-def get_salute_codes():
-    return _cached_loader("_salute_cache", "salute")
-
-_product_units_cache = None
-def get_product_units():
-    return _cached_loader("_product_units_cache", "product_unit")
-
-_employee_benefit_cache = None
-def get_employee_benefit_codes():
-    return _cached_loader("_employee_benefit_cache", "employee_benefit")
-
-_equipment_category_cache = None
-def get_equipment_categories():
-    return _cached_loader("_equipment_category_cache", "equipment_and_materials_category")
-
-_sector_codes_cache = None
-def get_sector_codes():
-    return _cached_loader("_sector_codes_cache", "sector")
-
-_qip_type_cache = None
-def get_qip_types():
-    return _cached_loader("_qip_type_cache", "qip_type")
-
-_union_cache = None
-def get_union_codes():
-    return _cached_loader("_union_cache", "union")
-
-_continent_cache = None
-def get_continent_codes():
-    return _cached_loader("_continent_cache", "continent")
-
-_nationality_cache = None
-def get_nationality_codes():
-    return _cached_loader("_nationality_cache", "nationality")
-
-_country_cache = None
-def get_market_country_codes():
-    return _cached_loader("_country_cache", "country")
-
-_bm_position_cache = None
-def get_bm_position_codes():
-    return _cached_loader("_bm_position_cache", "bm_position")
-
-_investor_salute_cache = None
-def get_investor_salute_codes():
-    return _cached_loader("_investor_salute_cache", "investor_salute")
-
-_currency_cache = None
-def get_currency_codes():
-    return _cached_loader("_currency_cache", "currency")
-
-def random_currency_code():
-    codes = get_currency_codes()
-    return random.choice(codes) if codes else "USD"
-
-_company_type_cache = None
-def get_company_type_codes():
-    return _cached_loader("_company_type_cache", "company_type")
-# ======================================================
-# 3) INVESTMENT TARGET SPECIAL HANDLING
-# ======================================================
-
-_investment_target_cache = None
-def get_investment_targets():
-    global _investment_target_cache
-    if _investment_target_cache is None:
-        res = http_get("/formdata/invt")
-        flat = []
-        for group in res["data"]["investment_target"]:
-            for child in group["children"]:
-                flat.append({
-                    "code": child["code"],
-                    "km": child["translate"]["km"],
-                    "en": child["translate"]["en"],
-                })
-        _investment_target_cache = flat
-    return _investment_target_cache
-
-def random_investment_target_detail():
-    return random.choice(get_investment_targets())
-
-def random_investment_target_khmer():
-    return random_investment_target_detail()["km"]
-
-def random_investment_target_en():
-    return random_investment_target_detail()["en"]
-
-def random_investment_target_code():
-    return random_investment_target_detail()["code"]
-
-
-# ======================================================
-# 4) RANDOM ENUM PICKERS
-# ======================================================
-    
-def random_investor_salute():
-    codes = get_investor_salute_codes()
-    return random.choice(codes) if codes else "Mr."
-
-def get_salute_codes():
-    return _cached_loader("_salute_cache", "salute")
-
-def random_salute_code():
-    codes = get_salute_codes() or []
-    if not codes:
-        return "Mr."
-    return random.choice(codes)
-
-def random_equipment_unit():
-    return random.choice(get_product_units())
-
-def random_employee_benefits():
-    codes = get_employee_benefit_codes()
-    return random.choice(codes) if codes else None
-
-def random_sector_code():
-    return random.choice(get_sector_codes())
-
-def random_qip_type():
-    return random.choice(get_qip_types())
-
-def random_market_union():
-    return random.sample(get_union_codes(), random.randint(1, len(get_union_codes())))
-
-def random_market_continent():
-    return random.sample(get_continent_codes(), random.randint(1, len(get_continent_codes())))
-
-def random_market_countries():
-    countries = get_market_country_codes()
-    return random.sample(countries, random.randint(3, min(7, len(countries))))
-
-def random_market_country_single():
-    return random.choice(get_market_country_codes())
-
-def random_nationality_code():
-    return random.choice(get_nationality_codes())
-
-def random_bm_position_code():
-    return random.choice(get_bm_position_codes())
-
-def random_investor_salute():
-    return random.choice(get_investor_salute_codes())
-
-
 # ======================================================
 # 5) PERSONAL INFO RANDOM
 # ======================================================
@@ -546,31 +380,9 @@ def random_equipment_name():
         "Safety Shoes", "Electric Drill", "Hammer",
         "Aluminum Sheet", "Air Compressor", "Cutting Blade", "Industrial Fan",
     ])
-
-def random_quantity(min_q=10, max_q=500):
-    return random.randint(min_q, max_q)
-
-def random_price(min_p=5, max_p=500):
-    return random.randint(min_p, max_p)
-
-def random_category():
-    categories = get_equipment_categories()
-    return random.choice(categories) if categories else "I- Construction Material"
-
-def random_percent():
-    return random.choice(["0", "50", "100"])
-
-
 # ======================================================
 # 8) PROJECT INFO RANDOM
 # ======================================================
-
-def random_incentive_type():
-    return random.choice([
-        "exemption_on_income_tax",
-        "special_tax_deduction",
-        "custom_duty_exemption",
-    ])
 
 def random_building_type():
     return random.choice(["existing_building", "new_building"])
@@ -604,12 +416,6 @@ def random_project_dates():
 # 9) SMALL UTILITIES
 # ======================================================
 
-def random_latlng():
-    return random.choice([
-        "11.590677,104.859288",
-        "11.614311,104.832491",
-        "11.558829,104.807890",
-    ])
 
 def random_future_date():
     dt = datetime.now() + timedelta(days=random.randint(30, 500))
@@ -636,18 +442,3 @@ def random_kh_text():
 
 def random_product_input_name():
     return random.choice(["ស្រូវ", "កៅស៊ូ", "ស្ករ", "សំបុក", "ជ័រ", "ខ្សែ", "ដែក", "សន្លឹកដែក"])
-
-def random_boolean_flag():
-    return str(random.choice([0, 1]))
-
-def random_small_number():
-    return random.randint(10, 13)
-
-def random_medium_number():
-    return random.randint(100, 120)
-
-def random_large_number():
-    return random.randint(100000, 120000)
-
-def random_very_large_number():
-    return random.randint(10000000, 12000000)

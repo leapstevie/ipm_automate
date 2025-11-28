@@ -27,7 +27,6 @@ def http_put(path, data=None):
         code = body.get("code")
         msg = (body.get("message") or {}).get("en") or body.get("message")
 
-        # 👇 NEW: print any field-level info backend gives you
         details = body.get("data")
         if details:
             print("VALIDATION DETAILS:")

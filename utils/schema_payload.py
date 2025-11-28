@@ -70,7 +70,8 @@ def build_payload(detail, value_resolver, rdm=None):
         rdm = {}
 
     payload = []
-    context = {}
+
+    context = dict(rdm)
     generated_values = {}
 
     for field in _iter_fields(detail):
