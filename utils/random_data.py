@@ -59,21 +59,26 @@ def _pick_list_from_option_code(option_code: str, validation: dict):
 
 
 def _pick_dependent(keyword, parent_code):
+    if not keyword or not parent_code:
+        return None
+
     try:
         res = http_get(
             "/formdata/invt/dependency_option",
-            params={"keyword": keyword, "parent_code": parent_code},
+            params={
+                "keyword": keyword,
+                "parent_code": parent_code
+            },
         )
-        data = res.get("data", [])
+
+        data = res.get("data") or []
         if not data:
-            print(f"[WARN] No dependent options for {keyword} parent={parent_code}")
             return None
+
         return random.choice(data).get("code")
 
-    except Exception as e:
-        print(f"[ERROR] Dependency-option failed for keyword={keyword} parent={parent_code}: {e}")
+    except Exception:
         return None
-
 
 def generic_value_resolver(field, context=None):
     if context is None:
