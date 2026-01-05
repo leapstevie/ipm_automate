@@ -12,6 +12,7 @@ def main():
     print("New application:", invt_id)
 
     run_all_steps(invt_id)
+    
 
 
 if __name__ == "__main__":

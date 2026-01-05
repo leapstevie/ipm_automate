@@ -47,11 +47,22 @@ def _resolve_calc_value(row, context):
 
 def compute_key_calculates(field_code, key_calculates, context):
     rows = sorted(key_calculates, key=lambda x: x.get("key_calculate_order", 0))
-    total = 0.0
 
+    total = 0.0
+    started = False  
+    
     for row in rows:
         sign = (row.get("calculate_sign") or "plus").lower()
         val = _resolve_calc_value(row, context)
+
+        # Initialize on first value:
+        if not started:
+            if sign in ("multiply", "divide"):
+                total = val
+            else:
+                total = val 
+            started = True
+            continue
 
         if sign == "plus":
             total += val
@@ -59,8 +70,9 @@ def compute_key_calculates(field_code, key_calculates, context):
             total -= val
         elif sign == "multiply":
             total *= val
-        elif sign == "divide" and val != 0:
-            total /= val
+        elif sign == "divide":
+            if val != 0:
+                total /= val
 
     return round(total, 2)
 
@@ -98,7 +110,7 @@ def build_payload(detail, value_resolver, rdm=None):
             value = generated_values[code]
         else:
             if code in rdm:
-                value = rdm[code]
+                value = rdm[code]   
             else:
                 value = value_resolver(field, context)
 
