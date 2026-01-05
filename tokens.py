@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.system.db import SessionQipLocal
 from app.models.qip.user_model import USER_MODEL, USER_SESSION_MODEL
-from config import BASE 
+from config import QIP_BASE_URL 
 
 
 
@@ -47,7 +47,7 @@ class TokenManager:
 
     @staticmethod
     def _mk_url(path: str) -> str:
-        base = (BASE or "").rstrip("/")
+        base = (QIP_BASE_URL or "").rstrip("/")
         return f"{base}{path}" if base.endswith("/api/v1") else f"{base}/api/v1{path}"
 
     # ---------------- DB: tokens ----------------
