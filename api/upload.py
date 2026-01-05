@@ -1,12 +1,12 @@
 # api/upload.py
 import os
 import requests
-from config import UPLOAD_BASE, BASE
+from config import UPLOAD_BASE, QIP_BASE_URL
 import tokens  
 
 
 def get_user_id():
-    url = f"{BASE}/users/me"
+    url = f"{QIP_BASE_URL}/users/me"
     res = requests.get(url, headers=tokens.token_manager.headers(), timeout=360)
     if res.status_code in (401, 403):
         try:
@@ -67,7 +67,7 @@ def upload_list_excel(invt_id, list_code, xlsx_path):
     if not os.path.isfile(xlsx_path):
         raise FileNotFoundError(f"Excel not found: {xlsx_path}")
 
-    url = f"{BASE}/invt/{invt_id}/list/{list_code}"
+    url = f"{QIP_BASE_URL}/invt/{invt_id}/list/{list_code}"
 
     with open(xlsx_path, "rb") as f:
         files = {

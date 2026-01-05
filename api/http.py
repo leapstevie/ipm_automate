@@ -1,11 +1,11 @@
 import json
 import requests
-from config import BASE 
+from config import QIP_BASE_URL 
 from tokens import token_manager
 
 
 def _mk_url(path: str) -> str:
-    base = (BASE or "").rstrip("/")
+    base = (QIP_BASE_URL or "").rstrip("/")
     p = (path or "")
     if not p.startswith("/"):
         p = "/" + p

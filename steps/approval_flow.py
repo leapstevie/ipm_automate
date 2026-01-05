@@ -5,7 +5,7 @@ import requests
 from api.http import http_get
 from tokens import token_manager
 from utils.random_data import random_signature_file
-from config import BASE , DMB_DIRECT_PAYMENT_ENDPOINT, DMB_DIRECT_PAYMENT_TOKEN
+from config import QIP_BASE_URL , DMB_DIRECT_PAYMENT_ENDPOINT, DMB_DIRECT_PAYMENT_TOKEN
 
 
 def submit_signature(invt_id: str, user_id: str | None = None):
@@ -26,7 +26,7 @@ def submit_signature(invt_id: str, user_id: str | None = None):
     else:
         mime_type = mimetypes.guess_type(signature_path)[0] or "image/jpeg"
 
-    url = f"{BASE.rstrip('/')}/invt/{invt_id}/application/sign"
+    url = f"{QIP_BASE_URL.rstrip('/')}/invt/{invt_id}/application/sign"
 
     with open(signature_path, "rb") as f:
         files = {"file": (filename, f, mime_type)}

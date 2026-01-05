@@ -4,7 +4,7 @@ import requests
 from datetime import date
 from typing import Optional, Dict, Any, Callable
 
-from config import BASE 
+from config import QIP_BASE_URL 
 
 try:
     from sqlalchemy import desc
@@ -73,7 +73,7 @@ SEC_COMMENT_USER = {
 # ============================================================
 
 def api_BASE() -> str:
-    base = str(BASE).rstrip("/")
+    base = str(QIP_BASE_URL).rstrip("/")
     return base if base.endswith("/api/v1") else f"{base}/api/v1"
 
 
