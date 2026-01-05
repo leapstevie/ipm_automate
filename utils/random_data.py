@@ -408,8 +408,8 @@ def random_past_date(max_days: int = 2000) -> str:
 # ======================================================
 
 def random_file(folder: str = "picture_automate") -> str:
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    abs_folder = os.path.abspath(os.path.join(base_dir, folder))
+    BASE_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    abs_folder = os.path.abspath(os.path.join(BASE_dir, folder))
     if not os.path.isdir(abs_folder):
         raise Exception(f"Folder not found: {abs_folder}")
     files = [f for f in os.listdir(abs_folder)
@@ -420,8 +420,8 @@ def random_file(folder: str = "picture_automate") -> str:
 
 
 def random_signature_file(folder: str = "picture_automate/signature") -> str:
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    abs_folder = os.path.abspath(os.path.join(base_dir, folder))
+    BASE_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    abs_folder = os.path.abspath(os.path.join(BASE_dir, folder))
     if not os.path.isdir(abs_folder):
         raise Exception(f"Folder not found: {abs_folder}")
     files = [f for f in os.listdir(abs_folder)
@@ -432,8 +432,8 @@ def random_signature_file(folder: str = "picture_automate/signature") -> str:
 
 
 def random_face_file(folder: str = "picture_automate/face_scan") -> str:
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    abs_folder = os.path.abspath(os.path.join(base_dir, folder))
+    BASE_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    abs_folder = os.path.abspath(os.path.join(BASE_dir, folder))
     if not os.path.isdir(abs_folder):
         raise Exception(f"Folder not found: {abs_folder}")
     files = [f for f in os.listdir(abs_folder)

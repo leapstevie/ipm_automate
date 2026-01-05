@@ -11,8 +11,8 @@ import os
 
 def random_file(folder="picture_automate"):
 
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    abs_folder = os.path.abspath(os.path.join(base_dir, folder))
+    BASE_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    abs_folder = os.path.abspath(os.path.join(BASE_dir, folder))
     if not os.path.isdir(abs_folder):
         raise Exception(f"Folder not found: {abs_folder}")
     files = [
@@ -24,8 +24,8 @@ def random_file(folder="picture_automate"):
     return os.path.join(abs_folder, random.choice(files))
 
 def random_face_file(folder="picture_automate/face_scan"):
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    abs_folder = os.path.abspath(os.path.join(base_dir, folder))
+    BASE_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    abs_folder = os.path.abspath(os.path.join(BASE_dir, folder))
     if not os.path.isdir(abs_folder):
         raise Exception(f"Folder not found: {abs_folder}")
     files = [f for f in os.listdir(abs_folder) if f.lower().endswith((".jpg", ".jpeg", ".png"))]

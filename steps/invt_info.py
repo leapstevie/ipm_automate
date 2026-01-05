@@ -12,8 +12,8 @@ from api.upload import upload_temp_attachment
 # ======================================================
 
 def random_file(folder="picture_automate"):
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    abs_folder = os.path.abspath(os.path.join(base_dir, folder))
+    BASE_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    abs_folder = os.path.abspath(os.path.join(BASE_dir, folder))
     if not os.path.isdir(abs_folder):
         raise Exception(f"Folder not found: {abs_folder}")
 

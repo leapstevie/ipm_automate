@@ -31,7 +31,7 @@ def _safe_float(value):
 def _resolve_calc_value(row, context):
     field_calculate = row.get("field_calculate")
     key_calculate = row.get("key_calculate")
-    base_value = row.get("base_value")
+    BASE_value = row.get("BASE_value")
 
     if field_calculate:
         return _safe_float(context.get(field_calculate, 0))
@@ -39,8 +39,8 @@ def _resolve_calc_value(row, context):
     if key_calculate:
         return _safe_float(context.get(key_calculate, 0))
 
-    if base_value not in (None, ""):
-        return _safe_float(base_value)
+    if BASE_value not in (None, ""):
+        return _safe_float(BASE_value)
 
     return 0.0
 

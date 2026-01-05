@@ -11,19 +11,19 @@ FOLDERS = (
 )
 
 
-def find_equipment_excel_path(base_dir: str = BASE_DIR) -> str:
+def find_equipment_excel_path(BASE_dir: str = BASE_DIR) -> str:
     # try known folder names first
     for folder in FOLDERS:
-        p = os.path.join(base_dir, folder, FILENAME)
+        p = os.path.join(BASE_dir, folder, FILENAME)
         if os.path.isfile(p):
             return p
 
-    # fallback: search anywhere under base_dir
-    for root, _, files in os.walk(base_dir):
+    # fallback: search anywhere under BASE_dir
+    for root, _, files in os.walk(BASE_dir):
         if FILENAME in files:
             return os.path.join(root, FILENAME)
 
-    raise FileNotFoundError(f"Excel not found under: {base_dir}")
+    raise FileNotFoundError(f"Excel not found under: {BASE_dir}")
 
 
 def upload_equipment_material_excel(invt_id, xlsx_path=None):

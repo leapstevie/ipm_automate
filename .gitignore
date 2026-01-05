@@ -9,3 +9,14 @@ __pycache__/
 
 # Env
 .env
+
+# Local/OS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Env
+.env

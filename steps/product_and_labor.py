@@ -18,14 +18,14 @@ _PRODUCTS = [
 ]
 
 def field_override(code):
-    name, hs_base = random.choice(_PRODUCTS)
+    name, hs_BASE = random.choice(_PRODUCTS)
 
     if code == "product_output_name":
         return name
 
     if code == "product_output_hs_code":
      
-        return hs_base + f"{random.randint(10, 99):02d}"
+        return hs_BASE + f"{random.randint(10, 99):02d}"
 
     if code == "product_output_note":
         return random.choice([

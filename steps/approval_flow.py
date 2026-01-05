@@ -5,7 +5,7 @@ import requests
 from api.http import http_get
 from tokens import token_manager
 from utils.random_data import random_signature_file
-from config import BASE, DMB_DIRECT_PAYMENT_ENDPOINT, DMB_DIRECT_PAYMENT_TOKEN
+from config import BASE , DMB_DIRECT_PAYMENT_ENDPOINT, DMB_DIRECT_PAYMENT_TOKEN
 
 
 def submit_signature(invt_id: str, user_id: str | None = None):
@@ -68,9 +68,9 @@ def submit_payment(invt_id: str, user_id: str | None = None):
     
     url = f"{DMB_DIRECT_PAYMENT_ENDPOINT}?reference_number={ref}"
 
-    # print("==================== DMB PAY DEBUG ====================")
-    # print("URL:", url)
-    # print("REFERENCE:", ref)
+    print("==================== DMB PAY DEBUG ====================")
+    print("URL:", url)
+    print("REFERENCE:", ref)
 
     res = requests.post(
         url,

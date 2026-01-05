@@ -4,7 +4,7 @@ import requests
 from datetime import date
 from typing import Optional, Dict, Any, Callable
 
-from config import BASE
+from config import BASE 
 
 try:
     from sqlalchemy import desc
@@ -72,15 +72,15 @@ SEC_COMMENT_USER = {
 # Helpers / Utilities
 # ============================================================
 
-def api_base() -> str:
+def api_BASE() -> str:
     base = str(BASE).rstrip("/")
     return base if base.endswith("/api/v1") else f"{base}/api/v1"
 
 
 def _env_password() -> str:
-    pwd = os.getenv("PASS_USER", "").strip() or os.getenv("User_pass", "").strip()
+    pwd = os.getenv("DEFAULT_PASSWORD", "").strip() or os.getenv("User_pass", "").strip()
     if not pwd:
-        raise RuntimeError("No password found in env (PASS_USER or User_pass)")
+        raise RuntimeError("No password found in env (DEFAULT_PASSWORD or User_pass)")
     return pwd
 
 
@@ -145,7 +145,7 @@ class AuthManager:
                 }
 
                 try:
-                    r = requests.get(f"{api_base()}/users/me", headers=headers, timeout=5)
+                    r = requests.get(f"{api_BASE()}/users/me", headers=headers, timeout=5)
                     if r.status_code == 200:
                         return headers
                 except Exception:
@@ -166,7 +166,7 @@ class AuthManager:
     @staticmethod
     def login_with_password(user_row: UserContext) -> Dict[str, str]:
       
-        url = f"{api_base()}/auth/login"
+        url = f"{api_BASE()}/auth/login"
         pwd = _env_password()
 
         candidates = [user_row.email, user_row.phone_number]
@@ -234,7 +234,7 @@ class SiteVisitManager:
 
     @classmethod
     def post_site_visit_composition_twice(cls, sess: requests.Session, invt_id: str) -> dict:
-        url = f"{api_base()}/site_visit/{invt_id}/composition"
+        url = f"{api_BASE()}/site_visit/{invt_id}/composition"
 
         r1 = sess.post(url, json={**CHAIR_USER, "mission_position": MISSION_CHAIR}, timeout=60)
         check_resp(r1, "site_visit.composition.chair")
@@ -251,13 +251,13 @@ class SiteVisitManager:
     def do_pre_steps(cls, sess: requests.Session, invt_id: str) -> dict:
         today = date.today().isoformat()
 
-        r = sess.get(f"{api_base()}/site_visit/composition/form_v2", params={"invt_id": invt_id}, timeout=100)
+        r = sess.get(f"{api_BASE()}/site_visit/composition/form_v2", params={"invt_id": invt_id}, timeout=100)
         check_resp(r, "site_visit.form_v2")
 
         comp = cls.post_site_visit_composition_twice(sess, invt_id)
         site_visit_id = comp["site_visit_id"]
 
-        url_draft = f"{api_base()}/site_visit/{site_visit_id}/draft"
+        url_draft = f"{api_BASE()}/site_visit/{site_visit_id}/draft"
         r = sess.get(url_draft, timeout=100)
         check_resp(r, "site_visit.draft.get")
 
@@ -275,7 +275,7 @@ class SiteVisitManager:
         )
         check_resp(r, "site_visit.draft.put")
 
-        url_report = f"{api_base()}/site_visit_report/{site_visit_id}"
+        url_report = f"{api_BASE()}/site_visit_report/{site_visit_id}"
         r = sess.get(url_report, timeout=100)
         check_resp(r, "site_visit_report.get")
 
@@ -329,7 +329,7 @@ class FlowAutomation:
 
     @staticmethod
     def fetch_confirmation(headers: dict, invt_id: str) -> dict:
-        r = requests.get(f"{api_base()}/invt/{invt_id}/confirmation", headers=headers, timeout=100)
+        r = requests.get(f"{api_BASE()}/invt/{invt_id}/confirmation", headers=headers, timeout=100)
         check_resp(r, "flow.confirmation")
         return _json_data(r)
 
@@ -405,7 +405,7 @@ class FlowAutomation:
                 cls.maybe_run_phone_pre_steps(sess, invt_id, phone, stage_key)
 
             # Confirmation
-            res_c = sess.get(f"{api_base()}/invt/{invt_id}/confirmation", timeout=100)
+            res_c = sess.get(f"{api_BASE()}/invt/{invt_id}/confirmation", timeout=100)
             check_resp(res_c, "flow.confirmation")
             data = (_json_data(res_c).get("data") or {})
             action_form = data.get("action_form") or {}
@@ -457,9 +457,9 @@ class FlowAutomation:
                 payload["signature_on_certificate"] = signature_on_certificate_id
 
             if is_return:
-                url = f"{api_base()}/investment_project/{invt_id}/flow/return?step_code=approval_flow&project_type=qip"
+                url = f"{api_BASE()}/investment_project/{invt_id}/flow/return?step_code=approval_flow&project_type=qip"
             else:
-                url = f"{api_base()}/investment_project/{invt_id}/flow/submit?step_code=approval_flow&project_type=qip"
+                url = f"{api_BASE()}/investment_project/{invt_id}/flow/submit?step_code=approval_flow&project_type=qip"
 
             res_s = sess.put(url, json=payload, timeout=60)
             check_resp(res_s, "flow.return" if is_return else "flow.submit", payload)
@@ -479,7 +479,7 @@ class FlowAutomation:
 def get_current_stage(invt_id: str, user_row: UserContext) -> Optional[int]:
     def _fetch_stage(headers: dict) -> Optional[int]:
         try:
-            res = requests.get(f"{api_base()}/invt/{invt_id}/confirmation", headers=headers, timeout=100)
+            res = requests.get(f"{api_BASE()}/invt/{invt_id}/confirmation", headers=headers, timeout=100)
             if res.status_code == 200:
                 data = (_json_data(res).get("data") or {})
                 stage_info = data.get("stage_info") or {}
