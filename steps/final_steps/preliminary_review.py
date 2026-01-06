@@ -78,9 +78,9 @@ def api_BASE() -> str:
 
 
 def _env_password() -> str:
-    pwd = os.getenv("DEFAULT_PASSWORD", "").strip() or os.getenv("User_pass", "").strip()
+    pwd = os.getenv("DEFAULT_QIP_USER_PASSWORD", "").strip() or os.getenv("User_pass", "").strip()
     if not pwd:
-        raise RuntimeError("No password found in env (DEFAULT_PASSWORD or User_pass)")
+        raise RuntimeError("No password found in env (DEFAULT_QIP_USER_PASSWORD or User_pass)")
     return pwd
 
 

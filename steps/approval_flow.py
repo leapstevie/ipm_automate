@@ -68,9 +68,9 @@ def submit_payment(invt_id: str, user_id: str | None = None):
     
     url = f"{DMB_DIRECT_PAYMENT_ENDPOINT}?reference_number={ref}"
 
-    print("==================== DMB PAY DEBUG ====================")
-    print("URL:", url)
-    print("REFERENCE:", ref)
+    # print("==================== DMB PAY DEBUG ====================")
+    # print("URL:", url)
+    # print("REFERENCE:", ref)
 
     res = requests.post(
         url,
@@ -83,8 +83,7 @@ def submit_payment(invt_id: str, user_id: str | None = None):
     # print("======================================================")
 
     res.raise_for_status()
-    # Force single line output explicitly
-    print(f"✔ Payment requested for reference_number: {ref}", flush=True)
+    # print(f"✔ Payment requested for reference_number: {ref}", flush=True)
     return True
 
 
@@ -101,7 +100,7 @@ def submit_invoice_paid(invt_id: str, user_id: str | None = None):
     # print("PAID_DATETIME:", paid_dt)
     # print("========================================================")
 
-    print(f"✔ Invoice status: {status}")
+    # print(f"✔ Invoice status: {status}")
 
     return {
         "status": status,

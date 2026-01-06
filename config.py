@@ -22,5 +22,5 @@ DB_USER = os.getenv("DB_USER")
 DB_PASS = os.getenv("DB_PASS")
 DB_QIP_NAME = os.getenv("DB_QIP_NAME")
 
-DEFAULT_PASSWORD = (os.getenv("DEFAULT_PASSWORD") or "").strip()
+DEFAULT_QIP_USER_PASSWORD = (os.getenv("DEFAULT_QIP_USER_PASSWORD") or "").strip()
 

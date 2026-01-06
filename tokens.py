@@ -18,7 +18,7 @@ USER_TYPE_INVESTOR = "investor"
 API_QIP = "qip_api"
 STATUS_ACTIVE = 1
 
-DEFAULT_PASSWORD = (os.getenv("DEFAULT_PASSWORD") or "").strip()
+DEFAULT_QIP_USER_PASSWORD = (os.getenv("DEFAULT_QIP_USER_PASSWORD") or "").strip()
 
 
 class TokenManager:
@@ -137,8 +137,8 @@ class TokenManager:
         self.socket_key = d.get("socket_key") or self.socket_key
 
     def _login(self, user_id: int) -> None:
-        if not DEFAULT_PASSWORD:
-            raise RuntimeError("DEFAULT_PASSWORD not set; cannot login")
+        if not DEFAULT_QIP_USER_PASSWORD:
+            raise RuntimeError("DEFAULT_QIP_USER_PASSWORD not set; cannot login")
 
         phone_code, candidates = self._get_login_candidates_from_db(user_id=user_id)
 
@@ -148,7 +148,7 @@ class TokenManager:
         for username in candidates:
             res = requests.post(
                 url,
-                json={"phone_code": phone_code, "username": username, "password": DEFAULT_PASSWORD},
+                json={"phone_code": phone_code, "username": username, "password": DEFAULT_QIP_USER_PASSWORD},
                 headers={"Accept": "*/*"},
                 timeout=30,
             )
